@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HolaDr — Gestión de Turnos 24/7</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚕️</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Principales - Manual de Marca holadr */
+  --navy: #28289D;
+  --navy-light: #3D3DF7;
+  --mint: #4EE0B6;
+  --mint-dark: #6DBFA7;
+  --cyan: #2DD3FF;
+  /* Complementarios claros */
+  --mint-soft: #AFF0DE;
+  --cyan-soft: #A1EBFF;
+  --navy-soft: #9E9ED3;
+  --lavender: #E8E8FD;
+  /* Fondos y neutros */
+  --bg: #F4F6FB;
+  --bg-alt: #EAFBF6;
+  --card: #FFFFFF;
+  --text: #28289D;
+  --text-body: #1A1D2E;
+  --muted: #6B7194;
+  --gray-light: #ECECEC;
+  /* Funcionales */
+  --danger: #E74C6F;
+  --warn: #F5A623;
+  --success: #4EE0B6;
+  --border: #E2E6F0;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text-body); min-height: 100vh; }
+button { font-family: 'Poppins', sans-serif; cursor: pointer; transition: all 0.15s; }
+button:active { transform: scale(0.97); }
+select, input, textarea { font-family: 'Poppins', sans-serif; outline: none; }
+select:focus, input:focus, textarea:focus { border-color: var(--navy) !important; }
+::-webkit-scrollbar { height: 6px; width: 6px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+.header {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 60%, var(--cyan) 100%);
+  padding: 20px 24px 14px;
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 2px 20px rgba(40,40,157,0.3);
+}
+.header h1 { font-size: 19px; font-weight: 700; letter-spacing: -0.5px; }
+.header .sub { font-size: 11px; opacity: 0.7; margin-top: 3px; font-weight: 300; }
+.admin-btn {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.admin-btn.active { background: var(--mint); color: var(--navy); }
+
+.tabs { display: flex; gap: 4px; margin-top: 14px; }
+.tab {
+  flex: 1;
+  padding: 8px 4px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 400;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.tab.active { background: rgba(255,255,255,0.2); font-weight: 600; border-bottom-color: var(--mint); }
+.tab:hover:not(.active) { background: rgba(255,255,255,0.1); }
+
+.content { padding: 16px 16px 100px; max-width: 900px; margin: 0 auto; }
+
+.card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  margin-bottom: 12px;
+}
+
+.week-nav { display: flex; justify-content: space-between; align-items: center; }
+.week-nav button {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 16px;
+  color: var(--text);
+}
+.week-nav button:hover { background: var(--bg); }
+.week-title { font-size: 14px; font-weight: 600; }
+.week-sub { font-size: 11px; color: var(--muted); }
+.today-btn {
+  display: block;
+  margin: 0 auto 10px;
+  background: var(--navy);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 18px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.legend { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; justify-content: center; }
+.legend-item {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.grid-wrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+.grid { width: 100%; border-collapse: separate; border-spacing: 3px; min-width: 620px; }
+.grid th { padding: 6px 4px; font-size: 10px; font-weight: 600; text-align: center; color: var(--muted); }
+.grid th.today-col { color: var(--navy); background: rgba(45,211,255,0.1); border-radius: 8px; }
+.grid th.sun-col { color: var(--danger); }
+.grid .emp-cell {
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--card);
+  border-radius: 7px 0 0 7px;
+  white-space: nowrap;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.grid .emp-cell .avatar {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--navy), var(--cyan));
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  margin-right: 5px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.grid .shift-cell {
+  padding: 4px 2px;
+  text-align: center;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  min-width: 52px;
+}
+.grid .shift-cell:hover { transform: scale(1.05); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+.grid .shift-cell.today-border { outline: 2px solid var(--navy); outline-offset: -1px; }
+.grid .shift-cell .icon { font-size: 14px; }
+.grid .shift-cell .label { font-size: 8px; font-weight: 700; }
+.grid .hrs-cell {
+  padding: 4px 6px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--card);
+  border-radius: 0 7px 7px 0;
+}
+
+.coverage { display: flex; gap: 6px; flex-wrap: wrap; }
+.cov-item {
+  flex: 1;
+  min-width: 65px;
+  border-radius: 10px;
+  padding: 8px 4px;
+  text-align: center;
+}
+
+.btn-primary {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--navy), var(--cyan));
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(40,40,157,0.3);
+  margin-top: 10px;
+}
+.btn-primary:hover { box-shadow: 0 6px 24px rgba(40,40,157,0.4); transform: translateY(-1px); }
+
+/* Requests */
+.req-card { border-left: 4px solid var(--cyan); }
+.req-status {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 700;
+  display: inline-block;
+}
+.req-actions { display: flex; gap: 8px; margin-top: 12px; }
+.req-actions button {
+  flex: 1;
+  padding: 8px;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Team */
+.team-card { display: flex; align-items: center; gap: 12px; }
+.team-avatar {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--navy), var(--cyan));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.team-info { flex: 1; }
+.team-stats { text-align: right; }
+.team-badge {
+  padding: 2px 8px;
+  border-radius: 14px;
+  font-size: 9px;
+  font-weight: 700;
+  display: inline-block;
+  margin-bottom: 3px;
+}
+
+.summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.summary-item { border-radius: 10px; padding: 12px; text-align: center; }
+.summary-num { font-size: 22px; font-weight: 700; }
+.summary-label { font-size: 9px; color: var(--muted); }
+
+/* Legal */
+.legal-card { border-left: 4px solid var(--navy); }
+.legal-ref {
+  font-size: 9px;
+  color: var(--navy);
+  font-weight: 600;
+  background: rgba(40,40,157,0.08);
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-block;
+  margin-top: 2px;
+}
+.legal-warn {
+  background: rgba(245,166,35,0.12);
+  border: 1px solid rgba(245,166,35,0.3);
+  border-radius: 14px;
+  padding: 16px;
+  margin-top: 8px;
+}
+
+/* Modal */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  opacity: 0;
+  animation: fadeIn 0.2s forwards;
+}
+@keyframes fadeIn { to { opacity: 1; } }
+.modal {
+  background: var(--card);
+  border-radius: 20px 20px 0 0;
+  padding: 24px 20px 32px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 85vh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  animation: slideUp 0.3s 0.1s forwards;
+}
+@keyframes slideUp { to { transform: translateY(0); } }
+.modal h3 { font-size: 16px; font-weight: 700; }
+.modal label { font-size: 10px; font-weight: 600; color: var(--muted); display: block; margin-bottom: 5px; margin-top: 12px; }
+.modal select, .modal input, .modal textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+  background: #fff;
+}
+.modal textarea { resize: vertical; }
+.type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.type-btn {
+  padding: 10px 8px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 500;
+  text-align: left;
+}
+.type-btn.active { border-color: var(--cyan); background: rgba(45,211,255,0.08); }
+
+.notif {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-30px);
+  padding: 10px 24px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  z-index: 200;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  animation: notifIn 0.3s forwards, notifOut 0.3s 2.5s forwards;
+}
+@keyframes notifIn { to { transform: translateX(-50%) translateY(0); } }
+@keyframes notifOut { to { transform: translateX(-50%) translateY(-30px); opacity: 0; } }
+
+.hidden { display: none; }
+
+@media (max-width: 640px) {
+  .header { padding: 14px 14px 10px; }
+  .header h1 { font-size: 16px; }
+  .content { padding: 12px 10px 80px; }
+  .tab { font-size: 10px; padding: 6px 2px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div style="display:flex;align-items:center;gap:10px">
+      <!-- Isotipo holadr: burbuja de chat con carita -->
+      <svg width="40" height="36" viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+        <!-- Burbuja -->
+        <path d="M100 16C50 16 16 50 16 88C16 112 30 132 52 144L34 172L72 154C82 158 90 160 100 160C150 160 184 126 184 88C184 50 150 16 100 16Z" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <!-- Ojos verdes -->
+        <circle cx="72" cy="72" r="8" fill="#4EE0B6"/>
+        <circle cx="128" cy="72" r="8" fill="#4EE0B6"/>
+        <!-- Sonrisa -->
+        <path d="M68 108C68 108 80 128 100 128C120 128 132 108 132 108" stroke="#ffffff" stroke-width="10" stroke-linecap="round" fill="none"/>
+      </svg>
+      <!-- Logotipo texto -->
+      <div>
+        <div style="display:flex;align-items:baseline;line-height:1">
+          <span style="font-size:24px;font-weight:800;color:#fff;letter-spacing:-0.5px">hola</span><span style="font-size:24px;font-weight:800;color:#4EE0B6;letter-spacing:-0.5px">dr</span><span style="font-size:24px;color:#4EE0B6;font-weight:800">.</span>
+        </div>
+        <div class="sub" style="margin-top:2px">Gestión de Turnos 24/7 · Turnos 8h · 44h/sem → 42h/sem (15 jul)</div>
+      </div>
+    </div>
+    <button class="admin-btn" id="adminBtn" onclick="toggleAdmin()">👤 Vista</button>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-view="cal" onclick="switchView('cal',this)">📅 Calendario</button>
+    <button class="tab" data-view="sol" onclick="switchView('sol',this)">📝 Solicitudes</button>
+    <button class="tab" data-view="eq" onclick="switchView('eq',this)">👥 Equipo</button>
+    <button class="tab" data-view="leg" onclick="switchView('leg',this)">⚖️ Legal</button>
+  </div>
+</div>
+
+<div class="content">
+  <div id="view-cal"></div>
+  <div id="view-sol" class="hidden"></div>
+  <div id="view-eq" class="hidden"></div>
+  <div id="view-leg" class="hidden"></div>
+</div>
+
+<div id="modalOverlay" class="overlay hidden" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<div id="notifEl" class="notif hidden"></div>
+
+<script>
+// ====== DATA ======
+const SHIFTS = {
+  M:  { label:"Mañana",       time:"06:00–14:00", color:"#A1EBFF", tc:"#28289D", icon:"☀️", hrs:8 },
+  T:  { label:"Tarde",        time:"14:00–22:00", color:"#4EE0B6", tc:"#28289D", icon:"🌤", hrs:8 },
+  N:  { label:"Noche",        time:"22:00–06:00", color:"#3D3DF7", tc:"#ffffff", icon:"🌙", hrs:8 },
+  C:  { label:"Capacitación", time:"07:30–16:30", color:"#9E9ED3", tc:"#28289D", icon:"📚", hrs:9 },
+  V8: { label:"Viernes 8",    time:"07:00–14:00", color:"#E7F9FF", tc:"#28289D", icon:"📋", hrs:7 },
+  L11:{ label:"Lunes 11",     time:"13:00–17:00", color:"#EAFBF6", tc:"#28289D", icon:"📋", hrs:4 },
+  D:  { label:"Descanso",     time:"—",           color:"#ECECEC", tc:"#6B7194", icon:"🏖", hrs:0 },
+  SC: { label:"Sin contrato", time:"—",           color:"#F4F6FB", tc:"#C0C4D6", icon:"—",  hrs:0 },
+};
+
+// Fecha de inicio del contrato: 7 de mayo 2026 (jueves)
+const CONTRACT_START_WEEK = new Date(2026, 4, 4); // Lunes para cálculo de rotación
+const CONTRACT_START_DAY = new Date(2026, 4, 7);  // Día real de inicio del contrato
+
+// Cambio de jornada: 44h/sem hasta 14 jul, 42h/sem desde 15 jul
+const JORNADA_CHANGE = new Date(2026, 6, 15); // 15 julio 2026
+
+// Fechas especiales con turno fijo para TODOS los empleados
+const SPECIAL_DATES = {
+  '2026-05-07': 'C',   // Jue 7 — Capacitación inducción
+  '2026-05-08': 'V8',  // Vie 8 — Solo 7:00–14:00
+  '2026-05-09': 'D',   // Sáb 9 — Descanso
+  '2026-05-10': 'D',   // Dom 10 — Descanso
+  '2026-05-11': 'L11', // Lun 11 — Solo 13:00–17:00
+};
+
+// Rotación 24/7 con 3 turnos de 8h, 5 empleados
+// Cada empleado: 5.5 días on / 1.5 días off por semana = 44h/sem
+// Cada día necesita 3 personas (M, T, N) → 2 descansan
+// Patrón de 5 semanas para equidad total en turnos y descansos
+//
+// Columnas: Lun Mar Mié Jue Vie Sáb Dom
+// 44h/sem = 5 días de 8h + 1 día de 4h(medio turno) ó 5.5×8=44
+// Simplificado: alternamos 5 on / 2 off y 6 on / 1 off
+
+const ROT = [
+  // Semana tipo 1
+  // E1: M  M  T  T  N  D  D   = 40h + compensar
+  // E2: T  T  N  D  D  M  M   = 40h
+  // E3: N  D  D  M  M  T  T   = 40h
+  // E4: D  N  M  M  T  T  D   = 40h
+  // E5: D  D  M  N  M  N  T   = 40h
+  // Ajustado para 44h: algunos días dobles o turnos extendidos
+  // Mejor: 5 días × 8h = 40h base + 1 medio turno de 4h = 44h
+  // Uso turno H (half) los martes para compensar
+
+  // Rotación limpia: 5.5 turnos de 8h = 44h
+  // 5 días completos + 1 medio día, rotando cada semana
+  [["M","M","T","T","D","N","M"],  // E1: 6×8=48→ ajustar con D
+   ["T","N","D","M","M","T","D"],  // E2: 5×8=40+4=44
+   ["N","D","M","N","T","D","T"],  // E3: 5×8=40+4=44
+   ["D","T","N","D","N","M","N"],  // E4: 5×8=40+4=44
+   ["M","D","M","T","T","D","M"]], // E5: 5×8=40+4=44
+
+  // Semana tipo 2 (rotación de turnos)
+  [["T","T","N","N","D","M","T"],
+   ["N","M","D","T","T","N","D"],
+   ["M","D","T","M","N","D","N"],
+   ["D","N","M","D","M","T","M"],
+   ["T","D","T","N","T","D","T"]],
+
+  // Semana tipo 3
+  [["N","N","M","M","D","T","N"],
+   ["M","T","D","N","N","M","D"],
+   ["T","D","N","T","M","D","M"],
+   ["D","M","T","D","T","N","T"],
+   ["N","D","N","M","N","D","N"]],
+
+  // Semana tipo 4
+  [["M","T","T","N","D","M","D"],
+   ["T","N","D","M","M","D","T"],
+   ["N","D","M","T","T","N","M"],
+   ["D","M","N","D","N","T","N"],
+   ["T","D","N","M","D","M","T"]],
+
+  // Semana tipo 5
+  [["T","N","M","D","M","T","D"],
+   ["N","D","T","T","D","M","N"],
+   ["M","M","D","N","T","D","T"],
+   ["D","T","N","M","N","N","M"],
+   ["N","D","T","D","T","M","M"]],
+];
+
+const DAYS = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+const MO = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+const REQ_TYPES = {
+  cambio:      { label:"Cambio de Turno",  icon:"🔄", color:"#2DD3FF" },
+  permiso:     { label:"Permiso / Licencia", icon:"📋", color:"#F5A623" },
+  vacaciones:  { label:"Vacaciones",        icon:"✈️", color:"#4EE0B6" },
+  incapacidad: { label:"Incapacidad",       icon:"🏥", color:"#E74C6F" },
+  otro:        { label:"Otra Solicitud",    icon:"📝", color:"#9E9ED3" },
+};
+
+const REQ_STATUS = {
+  pendiente: { label:"Pendiente", color:"#F5A623" },
+  aprobada:  { label:"Aprobada",  color:"#4EE0B6" },
+  rechazada: { label:"Rechazada", color:"#E74C6F" },
+};
+
+// ====== STATE ======
+const DEFAULT_TEAM = [
+  {id:"E1",name:"Angy Paola Córdoba Galeano"},
+  {id:"E2",name:"Cristian David Orozco Garcia"},
+  {id:"E3",name:"Dahiana Garcia Atehortua"},
+  {id:"E4",name:"Laura Marcela Zapata Río"},
+  {id:"E5",name:"Yurladis Arboleda Arboleda"},
+];
+// Si hay equipo guardado en localStorage con nombres personalizados, usarlo
+// Si no, usar los nombres del código fuente
+let storedTeam = null;
+try { storedTeam = JSON.parse(localStorage.getItem('holadr-team')); } catch(e){}
+let team = (storedTeam && storedTeam[0] && storedTeam[0].name !== 'Empleado 1') ? storedTeam : DEFAULT_TEAM;
+let reqs = JSON.parse(localStorage.getItem('holadr-reqs')) || [];
+let weekOffset = 0;
+let adminMode = false;
+let currentView = 'cal';
+
+function saveTeam() { localStorage.setItem('holadr-team', JSON.stringify(team)); }
+function saveReqs() { localStorage.setItem('holadr-reqs', JSON.stringify(reqs)); }
+
+// ====== UTILS ======
+function wkNum(d) {
+  const u = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  u.setUTCDate(u.getUTCDate() + 4 - (u.getUTCDay()||7));
+  const y = new Date(Date.UTC(u.getUTCFullYear(),0,1));
+  return Math.ceil((((u-y)/864e5)+1)/7);
+}
+function getMonday(d) {
+  const r = new Date(d);
+  const day = r.getDay();
+  r.setDate(r.getDate() - day + (day===0? -6:1));
+  r.setHours(0,0,0,0);
+  return r;
+}
+function fmtD(d) { return `${d.getDate()} ${MO[d.getMonth()]} ${d.getFullYear()}`; }
+function dateStr(d) { return d.toISOString().split('T')[0]; }
+function initials(name) { return name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+
+function getWeekDates() {
+  const today = new Date();
+  const mon = getMonday(today);
+  mon.setDate(mon.getDate() + weekOffset*7);
+  return Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(d.getDate()+i);return d;});
+}
+
+function effShift(ei, di) {
+  const dates = getWeekDates();
+  const ds = dateStr(dates[di]);
+  const thisDay = dates[di];
+
+  // Antes del inicio real del contrato (7 mayo): sin contrato
+  if (thisDay < CONTRACT_START_DAY) return 'SC';
+
+  // Fechas especiales (inducción, viernes 8, sáb 9, dom 10, lunes 11)
+  if (SPECIAL_DATES[ds]) return SPECIAL_DATES[ds];
+
+  // Rotación basada en semanas desde el lunes de la semana de inicio
+  const diffMs = dates[0].getTime() - CONTRACT_START_WEEK.getTime();
+  const weeksSinceStart = Math.floor(diffMs / (7*864e5));
+  const rIdx = ((weeksSinceStart % 5) + 5) % 5; // 5 semanas de rotación
+  const pat = ROT[rIdx];
+  let base = pat[ei][di];
+  const eid = team[ei]?.id;
+
+  // Antes del 12 mayo: sin turno nocturno → reemplazar N por M
+  const NOCHE_START = new Date(2026, 4, 12);
+  if (thisDay < NOCHE_START && base === 'N') base = 'M';
+
+  const sw = reqs.find(r => r.type==='cambio' && r.status==='aprobada' && r.date===ds && (r.empId===eid||r.swap===eid));
+  if (sw) {
+    const oi = team.findIndex(t => t.id === (sw.empId===eid ? sw.swap : sw.empId));
+    if (oi>=0) return pat[oi][di];
+  }
+  const lv = reqs.find(r => ['permiso','vacaciones','incapacidad'].includes(r.type) && r.status==='aprobada' && r.date===ds && r.empId===eid);
+  if (lv) return 'D';
+  return base;
+}
+
+function jornadaMax() {
+  const dates = getWeekDates();
+  return dates[0] >= JORNADA_CHANGE ? 42 : 44;
+}
+
+function weekHrs(ei) {
+  let h=0;
+  for(let d=0;d<7;d++) {
+    const sh = effShift(ei,d);
+    h += (SHIFTS[sh]?.hrs || 0);
+  }
+  return h;
+}
+
+// ====== NOTIFY ======
+function notify(msg, type='ok') {
+  const el = document.getElementById('notifEl');
+  el.textContent = msg;
+  el.style.background = type==='err' ? '#E74C6F' : '#28289D';
+  el.className = 'notif';
+  setTimeout(()=>{ el.className='notif hidden'; }, 3000);
+}
+
+// ====== NAV ======
+function switchView(v, btn) {
+  currentView = v;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  ['cal','sol','eq','leg'].forEach(id=>{
+    document.getElementById('view-'+id).classList.toggle('hidden', id!==v);
+  });
+  render();
+}
+
+function toggleAdmin() {
+  adminMode = !adminMode;
+  const btn = document.getElementById('adminBtn');
+  btn.textContent = adminMode ? '🔓 Admin' : '👤 Vista';
+  btn.className = 'admin-btn' + (adminMode ? ' active' : '');
+  render();
+}
+
+// ====== RENDER CALENDAR ======
+function renderCal() {
+  const dates = getWeekDates();
+  const today = new Date();
+  const diffMs = dates[0].getTime() - CONTRACT_START_WEEK.getTime();
+  const weeksSinceStart = Math.floor(diffMs / (7*864e5));
+  const semContrato = Math.max(weeksSinceStart + 1, 1);
+  const rIdx = ((weeksSinceStart % 5) + 5) % 5;
+  const jornadaTarget = dates[0] >= JORNADA_CHANGE ? 42 : 44;
+
+  let html = `
+    <div class="card week-nav">
+      <button onclick="weekOffset--;render()">◀</button>
+      <div style="text-align:center">
+        <div class="week-title">Semana ${semContrato} — Rotación ${rIdx+1}/5</div>
+        <div class="week-sub">${fmtD(dates[0])} — ${fmtD(dates[6])}</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:2px">Meta: ${jornadaTarget}h/sem · Inicio contrato: 7 May 2026</div>
+      </div>
+      <button onclick="weekOffset++;render()">▶</button>
+    </div>`;
+
+  if (weekOffset !== 0) {
+    html += `<button class="today-btn" onclick="weekOffset=0;render()">↩ Volver a semana actual</button>`;
+  }
+
+  // Legend
+  html += `<div class="legend">`;
+  for (const [k,v] of Object.entries(SHIFTS)) {
+    if (['SC','V8','L11'].includes(k)) continue; // No mostrar en leyenda
+    html += `<span class="legend-item" style="background:${v.color};color:${v.tc}">${v.icon} ${v.label} <span style="opacity:.7">${v.time}</span></span>`;
+  }
+  html += `</div>`;
+
+  // Grid
+  html += `<div class="grid-wrap"><table class="grid"><thead><tr>
+    <th style="text-align:left;width:110px">Empleado</th>`;
+  dates.forEach((d,i)=>{
+    const isT = d.toDateString()===today.toDateString();
+    const isSun = d.getDay()===0;
+    html += `<th class="${isT?'today-col':''} ${isSun?'sun-col':''}">
+      <div>${DAYS[i]}</div><div style="font-size:13px;font-weight:700">${d.getDate()}</div>
+    </th>`;
+  });
+  html += `<th>Hrs</th></tr></thead><tbody>`;
+
+  team.forEach((emp,ei)=>{
+    const hrs = weekHrs(ei);
+    html += `<tr><td class="emp-cell"><span class="avatar">${initials(emp.name)}</span>${emp.name}</td>`;
+    dates.forEach((d,di)=>{
+      const sh = effShift(ei,di);
+      const sv = SHIFTS[sh];
+      const isT = d.toDateString()===today.toDateString();
+      const clickAttr = adminMode ? '' : `onclick="openModalFor('${emp.id}','${dateStr(d)}')"`;
+      html += `<td class="shift-cell ${isT?'today-border':''}" style="background:${sv.color}" ${clickAttr}>
+        <div class="icon">${sv.icon}</div>
+        <div class="label" style="color:${sv.tc}">${sv.label.slice(0,3)}</div>
+      </td>`;
+    });
+    html += `<td class="hrs-cell" style="color:${hrs>jornadaMax()?'var(--danger)':'var(--success)'}">${hrs}h ${hrs>jornadaMax()?'⚠️':''}</td></tr>`;
+  });
+  html += `</tbody></table></div>`;
+
+  // Coverage
+  html += `<div class="card" style="margin-top:12px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px">🔍 Cobertura Diaria 24/7</div>
+    <div class="coverage">`;
+  dates.forEach((d,di)=>{
+    const sh={};
+    team.forEach((_,ei)=>{ const x=effShift(ei,di); if(x!=='D' && x!=='SC') sh[x]=(sh[x]||0)+1; });
+    const ok = Object.keys(sh).length>=4;
+    const tot = Object.values(sh).reduce((a,b)=>a+b,0);
+    html += `<div class="cov-item" style="background:${ok?'rgba(78,224,182,.1)':'rgba(231,76,111,.1)'};border:1px solid ${ok?'rgba(78,224,182,.3)':'rgba(231,76,111,.3)'}">
+      <div style="font-size:10px;font-weight:600;color:var(--muted)">${DAYS[di]}</div>
+      <div style="font-size:18px;margin:3px 0">${ok?'✅':'⚠️'}</div>
+      <div style="font-size:9px;color:var(--muted)">${tot} turnos</div>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  if (!adminMode) {
+    html += `<button class="btn-primary" onclick="openModal()">➕ Nueva Solicitud</button>`;
+  }
+
+  document.getElementById('view-cal').innerHTML = html;
+}
+
+// ====== RENDER SOLICITUDES ======
+function renderSol() {
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <h2 style="font-size:16px;font-weight:700">Solicitudes</h2>
+    <button onclick="openModal()" style="background:var(--navy);color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:600">➕ Nueva</button>
+  </div>`;
+
+  if (reqs.length===0) {
+    html += `<div class="card" style="text-align:center;padding:40px">
+      <div style="font-size:48px;margin-bottom:10px">📭</div>
+      <p style="color:var(--muted);font-size:13px">No hay solicitudes registradas</p>
+    </div>`;
+  } else {
+    [...reqs].reverse().forEach(r => {
+      const rt = REQ_TYPES[r.type]||REQ_TYPES.otro;
+      const st = REQ_STATUS[r.status]||REQ_STATUS.pendiente;
+      const emp = team.find(t=>t.id===r.empId);
+      html += `<div class="card req-card" style="border-left-color:${rt.color}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">${rt.icon} ${rt.label}</div>
+            <div style="font-size:11px;color:var(--muted)">👤 ${emp?emp.name:r.empId} · 📅 ${r.date}</div>
+            ${r.swap ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">🔄 Con: ${(team.find(t=>t.id===r.swap)||{}).name||r.swap}</div>` : ''}
+            ${r.details ? `<div style="font-size:11px;color:var(--text);margin-top:6px;background:var(--bg);padding:6px 10px;border-radius:8px">${r.details}</div>` : ''}
+          </div>
+          <span class="req-status" style="background:${st.color}20;color:${st.color}">${st.label}</span>
+        </div>
+        ${adminMode && r.status==='pendiente' ? `<div class="req-actions">
+          <button style="background:var(--success)" onclick="updateReq('${r.id}','aprobada')">✅ Aprobar</button>
+          <button style="background:var(--danger)" onclick="updateReq('${r.id}','rechazada')">❌ Rechazar</button>
+        </div>` : ''}
+        <div style="font-size:9px;color:var(--muted);margin-top:8px">ID: ${r.id} · ${new Date(r.at).toLocaleString('es-CO')}</div>
+      </div>`;
+    });
+  }
+  document.getElementById('view-sol').innerHTML = html;
+}
+
+// ====== RENDER EQUIPO ======
+function renderEq() {
+  const today = new Date();
+  const dates = getWeekDates();
+  const todayIdx = dates.findIndex(d=>d.toDateString()===today.toDateString());
+
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <h2 style="font-size:16px;font-weight:700">👥 Equipo de Trabajo</h2>
+    ${adminMode ? `<button onclick="startEditTeam()" style="background:var(--navy);color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:600">✏️ Editar</button>` : ''}
+  </div>`;
+
+  team.forEach((emp,idx)=>{
+    const hrs = weekHrs(idx);
+    const cShift = todayIdx>=0 ? effShift(idx, todayIdx) : null;
+    const sv = cShift ? SHIFTS[cShift] : null;
+    const pend = reqs.filter(r=>r.empId===emp.id && r.status==='pendiente').length;
+
+    html += `<div class="card"><div class="team-card">
+      <div class="team-avatar">${initials(emp.name)}</div>
+      <div class="team-info">
+        <div style="font-size:14px;font-weight:600">${emp.name}</div>
+        <div style="font-size:11px;color:var(--muted)">ID: ${emp.id}</div>
+      </div>
+      <div class="team-stats">
+        ${sv ? `<span class="team-badge" style="background:${sv.color};color:${sv.tc}">${sv.icon} ${sv.label}</span>` : ''}
+        <div style="font-size:11px;color:${hrs>jornadaMax()?'var(--danger)':'var(--success)'};font-weight:600">${hrs}h/sem</div>
+        ${pend>0 ? `<div style="font-size:10px;color:var(--warn)">📋 ${pend} pend.</div>` : ''}
+      </div>
+    </div></div>`;
+  });
+
+  // Summary
+  const totalHrs = team.reduce((a,_,i)=>a+weekHrs(i),0);
+  const jMax = jornadaMax();
+  const comply = team.filter((_,i)=>weekHrs(i)<=jMax).length;
+  const pending = reqs.filter(r=>r.status==='pendiente').length;
+
+  html += `<div class="card" style="margin-top:8px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px">📊 Resumen Semanal</div>
+    <div class="summary-grid">
+      <div class="summary-item" style="background:rgba(40,40,157,.08)">
+        <div class="summary-num" style="color:var(--navy)">${totalHrs}h</div>
+        <div class="summary-label">Horas Totales</div>
+      </div>
+      <div class="summary-item" style="background:rgba(78,224,182,.08)">
+        <div class="summary-num" style="color:var(--success)">${comply}/${team.length}</div>
+        <div class="summary-label">Cumplen ${jMax}h</div>
+      </div>
+      <div class="summary-item" style="background:rgba(245,166,35,.08)">
+        <div class="summary-num" style="color:var(--warn)">${pending}</div>
+        <div class="summary-label">Pendientes</div>
+      </div>
+    </div>
+  </div>`;
+
+  document.getElementById('view-eq').innerHTML = html;
+}
+
+// ====== RENDER LEGAL ======
+function renderLeg() {
+  const items = [
+    { t:"Jornada Ordinaria 2026", r:"Ley 2101/2021 + Art. 161 CST", c:"Jornada máxima de 44 horas semanales hasta el 14 de julio de 2026. A partir del 15 de julio: 42 horas semanales. Turnos de 8 horas: Mañana (6:00–14:00), Tarde (14:00–22:00) y Noche (22:00–06:00).", i:"⏰" },
+    { t:"Reducción Gradual de Jornada", r:"Ley 2101/2021", c:"La jornada se reduce progresivamente: 2025→46h, 2026 (ene–jul 14)→44h, 2026 (jul 15+)→42h. Este cuadro aplica el cambio automáticamente el 15 de julio.", i:"📋" },
+    { t:"Recargos 2026", r:"Art. 168 y 179 CST + Ley 2466/2025", c:"Nocturno (9:00 PM – 6:00 AM): 35%. Dominical/Festivo: 90% (sube a 100% en 2027). Horas extra diurnas: 25%. Horas extra nocturnas: 75%.", i:"💰" },
+    { t:"Descanso Obligatorio", r:"Art. 172 CST", c:"Todo trabajador tiene derecho a un día de descanso remunerado por semana. En turnos rotativos puede asignarse cualquier día. La rotación garantiza al menos 1 día de descanso semanal.", i:"🏖" },
+    { t:"Trabajo Nocturno", r:"Art. 160 CST", c:"Jornada nocturna: 9:00 PM a 6:00 AM. Los turnos nocturnos inician a partir del 12 de mayo. Los recargos nocturnos aplican sobre las horas trabajadas en este rango.", i:"🌙" },
+    { t:"Documentación", r:"Art. 161 CST", c:"Los turnos rotativos deben pactarse por escrito y registrarse en el Reglamento Interno de Trabajo. Es obligatorio mantener registro de asistencia y cumplimiento de jornadas.", i:"📝" },
+  ];
+
+  let html = `<h2 style="font-size:16px;font-weight:700;margin-bottom:14px">⚖️ Marco Legal Aplicable</h2>`;
+  items.forEach(it=>{
+    html += `<div class="card legal-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-size:20px">${it.i}</span>
+        <div>
+          <div style="font-size:13px;font-weight:700">${it.t}</div>
+          <span class="legal-ref">${it.r}</span>
+        </div>
+      </div>
+      <p style="font-size:12px;line-height:1.6;color:var(--muted)">${it.c}</p>
+    </div>`;
+  });
+  html += `<div class="legal-warn">
+    <p style="font-size:11px;line-height:1.6"><strong>⚠️ Nota importante:</strong> Turnos de 8 horas en rotación de 5 ciclos semanales. Meta: 44h/sem (hasta 14 jul) → 42h/sem (desde 15 jul). Inicio de contrato: 7 mayo 2026. Noche activa desde 12 mayo. Consulte con su asesor laboral para ajustes específicos.</p>
+  </div>`;
+  document.getElementById('view-leg').innerHTML = html;
+}
+
+// ====== MODAL ======
+function openModal() {
+  renderModal();
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+function openModalFor(empId, date) {
+  renderModal(empId, date);
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.add('hidden');
+}
+
+let modalForm = { type:'cambio', empId:'', date:'', details:'', swap:'' };
+
+function renderModal(empId, date) {
+  if (empId) modalForm.empId = empId;
+  if (date) modalForm.date = date;
+
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+    <h3>📝 Nueva Solicitud</h3>
+    <button onclick="closeModal()" style="background:var(--bg);border:none;border-radius:50%;width:30px;height:30px;font-size:15px;cursor:pointer">✕</button>
+  </div>
+
+  <label>Tipo de solicitud</label>
+  <div class="type-grid">`;
+  for (const [k,v] of Object.entries(REQ_TYPES)) {
+    html += `<button class="type-btn ${modalForm.type===k?'active':''}" onclick="modalForm.type='${k}';renderModal()">${v.icon} ${v.label}</button>`;
+  }
+  html += `</div>
+
+  <label>Empleado</label>
+  <select onchange="modalForm.empId=this.value">
+    <option value="">Seleccionar...</option>`;
+  team.forEach(t=>{
+    html += `<option value="${t.id}" ${modalForm.empId===t.id?'selected':''}>${t.name}</option>`;
+  });
+  html += `</select>
+
+  <label>Fecha</label>
+  <input type="date" value="${modalForm.date}" onchange="modalForm.date=this.value">`;
+
+  if (modalForm.type==='cambio') {
+    html += `<label>Intercambiar turno con</label>
+    <select onchange="modalForm.swap=this.value">
+      <option value="">Seleccionar compañero...</option>`;
+    team.filter(t=>t.id!==modalForm.empId).forEach(t=>{
+      html += `<option value="${t.id}" ${modalForm.swap===t.id?'selected':''}>${t.name}</option>`;
+    });
+    html += `</select>`;
+  }
+
+  html += `<label>Detalle / Justificación</label>
+  <textarea rows="3" placeholder="Describa el motivo..." onchange="modalForm.details=this.value">${modalForm.details}</textarea>
+
+  <button class="btn-primary" style="margin-top:18px" onclick="submitReq()">📤 Enviar Solicitud</button>`;
+
+  document.getElementById('modalContent').innerHTML = html;
+}
+
+function submitReq() {
+  if (!modalForm.empId || !modalForm.date) { notify('Complete todos los campos requeridos','err'); return; }
+  reqs.push({
+    ...modalForm,
+    id: 'REQ-'+Date.now(),
+    status: 'pendiente',
+    at: new Date().toISOString(),
+  });
+  saveReqs();
+  modalForm = { type:'cambio', empId:'', date:'', details:'', swap:'' };
+  closeModal();
+  notify('Solicitud enviada correctamente');
+  render();
+}
+
+function updateReq(id, status) {
+  const r = reqs.find(x=>x.id===id);
+  if (r) r.status = status;
+  saveReqs();
+  notify('Solicitud ' + (status==='aprobada'?'aprobada':'rechazada'));
+  render();
+}
+
+// ====== EDIT TEAM ======
+function startEditTeam() {
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+    <h3>✏️ Editar Equipo</h3>
+    <button onclick="closeModal()" style="background:var(--bg);border:none;border-radius:50%;width:30px;height:30px;font-size:15px;cursor:pointer">✕</button>
+  </div>`;
+  team.forEach((emp,i)=>{
+    html += `<label>${emp.id}</label>
+    <input type="text" id="tname${i}" value="${emp.name}" style="margin-bottom:8px">`;
+  });
+  html += `<button class="btn-primary" style="margin-top:14px;background:var(--success)" onclick="saveEditTeam()">💾 Guardar Cambios</button>`;
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+
+function saveEditTeam() {
+  team.forEach((emp,i)=>{
+    const input = document.getElementById('tname'+i);
+    if (input && input.value.trim()) emp.name = input.value.trim();
+  });
+  saveTeam();
+  closeModal();
+  notify('Equipo actualizado');
+  render();
+}
+
+// ====== RENDER ======
+function render() {
+  if (currentView==='cal') renderCal();
+  if (currentView==='sol') renderSol();
+  if (currentView==='eq') renderEq();
+  if (currentView==='leg') renderLeg();
+}
+
+render();
+</script>
+</body>
+</html>
